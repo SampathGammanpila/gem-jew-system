@@ -4,37 +4,48 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> | Gemstone System Admin</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="/admin/img/favicon.ico">
+  
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="/admin/css/tailwind.css">
   <link rel="stylesheet" href="/admin/css/custom.css">
-  <!-- Add Font Awesome for icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Admin-specific styles -->
-  <style>
-    .admin-sidebar {
-      height: calc(100vh - 4rem);
-    }
-  </style>
+  
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" 
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+  
   <!-- Page-specific styles -->
   <% if (typeof styles !== 'undefined') { %>
     <%- styles %>
   <% } %>
+  
+  <!-- CSRF Token Meta -->
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  
+  <!-- Security Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
   <!-- Header -->
   <% if (typeof hideHeader === 'undefined' || !hideHeader) { %>
     <%- include('../partials/header') %>
   <% } %>
 
-  <!-- Main Content -->
-  <div class="flex min-h-screen">
+  <div class="flex flex-1 min-h-0">
     <!-- Sidebar (if not hidden) -->
     <% if (typeof hideSidebar === 'undefined' || !hideSidebar) { %>
       <%- include('../partials/sidebar') %>
     <% } %>
 
-    <!-- Content Area -->
-    <div class="flex-1 <% if (typeof hideSidebar === 'undefined' || !hideSidebar) { %>pl-64<% } %>">
-      <main class="container mx-auto px-4 py-6">
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col <% if (typeof hideSidebar === 'undefined' || !hideSidebar) { %>lg:pl-64<% } %>">
+      <main class="flex-1 p-4 sm:p-6 md:p-8">
         <!-- Flash Messages -->
         <% if (typeof error !== 'undefined' && error) { %>
           <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
@@ -48,19 +59,63 @@
           </div>
         <% } %>
         
+        <!-- Page Title (if any) -->
+        <% if (typeof pageTitle !== 'undefined' && pageTitle) { %>
+          <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900"><%= pageTitle %></h1>
+            <% if (typeof pageDescription !== 'undefined' && pageDescription) { %>
+              <p class="mt-1 text-sm text-gray-500"><%= pageDescription %></p>
+            <% } %>
+          </div>
+        <% } %>
+        
         <!-- Page Content -->
         <%- body %>
       </main>
+      
+      <!-- Footer -->
+      <% if (typeof hideFooter === 'undefined' || !hideFooter) { %>
+        <%- include('../partials/footer') %>
+      <% } %>
     </div>
   </div>
 
-  <!-- Footer -->
-  <% if (typeof hideFooter === 'undefined' || !hideFooter) { %>
-    <%- include('../partials/footer') %>
-  <% } %>
-
   <!-- Core JavaScript -->
   <script src="/admin/js/admin.js"></script>
+  
+  <!-- CSRF Protection -->
+  <script>
+    // Add CSRF token to all AJAX requests
+    document.addEventListener('DOMContentLoaded', function() {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      
+      // Add CSRF token to all fetch requests
+      const originalFetch = window.fetch;
+      window.fetch = function(url, options = {}) {
+        if (typeof options.headers === 'undefined') {
+          options.headers = {};
+        }
+        
+        if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase())) {
+          options.headers['X-CSRF-Token'] = csrfToken;
+        }
+        
+        return originalFetch(url, options);
+      };
+      
+      // Add CSRF token to all XHR requests
+      const originalOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function() {
+        const result = originalOpen.apply(this, arguments);
+        
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(arguments[0].toUpperCase())) {
+          this.setRequestHeader('X-CSRF-Token', csrfToken);
+        }
+        
+        return result;
+      };
+    });
+  </script>
   
   <!-- Additional Scripts -->
   <% if (typeof scripts !== 'undefined') { %>

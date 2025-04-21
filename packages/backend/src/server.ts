@@ -1,4 +1,6 @@
-import express, { Express } from 'express'
+// File: packages/backend/src/server.ts
+
+import express, { Express, Request, Response, NextFunction } from 'express'
 import helmet from 'helmet'
 import compression from 'compression'
 import cors from 'cors'
@@ -7,6 +9,8 @@ import path from 'path'
 import cookieParser from 'cookie-parser'
 import { rateLimit } from 'express-rate-limit'
 import expressLayouts from 'express-ejs-layouts'
+import session from 'express-session'
+import crypto from 'crypto'
 
 // Import routes
 import apiRoutes from './api/routes'
@@ -18,11 +22,35 @@ import { errorMiddleware } from './api/middlewares/error.middleware'
 // Import configuration
 import { corsOptions } from './config/cors'
 
+// Session configuration
+const sessionConfig = {
+  secret: process.env.SESSION_SECRET || 'your_session_secret_key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+  },
+  name: 'sid',
+}
+
 export const createServer = (): Express => {
   const app = express()
 
   // Security headers
-  app.use(helmet())
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+        fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+        imgSrc: ["'self'", "data:"],
+      }
+    }
+  }))
 
   // Parse JSON bodies
   app.use(express.json())
@@ -32,6 +60,9 @@ export const createServer = (): Express => {
   
   // Parse cookies
   app.use(cookieParser())
+  
+  // Set up session middleware
+  app.use(session(sessionConfig))
   
   // Enable CORS
   app.use(cors(corsOptions))
@@ -65,6 +96,21 @@ export const createServer = (): Express => {
   app.set('layout', 'layouts/main')
   app.set('layout extractScripts', true)
   app.set('layout extractStyles', true)
+  
+  // CSRF token middleware for forms
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Add CSRF token to session if it doesn't exist
+    if (req.session && !req.session.csrfToken) {
+      req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+    }
+    
+    // Make CSRF token available to views
+    if (req.session) {
+      res.locals.csrfToken = req.session.csrfToken;
+    }
+    
+    next();
+  });
   
   // API routes
   app.use(`${process.env.API_PREFIX || '/api'}`, apiRoutes)

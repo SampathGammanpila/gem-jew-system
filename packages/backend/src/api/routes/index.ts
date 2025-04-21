@@ -1,3 +1,5 @@
+// packages/backend/src/api/routes/index.ts
+
 import { Router } from 'express'
 import authRoutes from './auth.routes'
 import userRoutes from './user.routes'
@@ -5,12 +7,12 @@ import { notFoundHandler } from '../middlewares/error.middleware'
 
 const router = Router()
 
-// Health check route
-router.get('/health', (req, res) => {
+// Health check route for the base /api path
+router.get('/', (req, res) => {
   res.json({
-    status: 'ok',
+    status: 'success',
+    message: 'Gemstone System API is running',
     timestamp: new Date(),
-    service: 'gemstone-system-api',
     version: process.env.npm_package_version || '0.1.0',
   })
 })

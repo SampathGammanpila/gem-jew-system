@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Admin-specific styles that build on top of Tailwind */
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
