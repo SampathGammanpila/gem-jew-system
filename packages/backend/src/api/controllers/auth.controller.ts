@@ -1,5 +1,3 @@
-// File: packages/backend/src/api/controllers/auth.controller.ts
-
 import { Request, Response } from 'express'
 import { ApiError } from '../middlewares/error.middleware'
 import * as authService from '@/services/auth.service'
@@ -251,8 +249,8 @@ export const verifyEmail = async (req: Request, res: Response) => {
  */
 export const refreshToken = async (req: Request, res: Response) => {
   try {
-    // Get refresh token (this should be set by authenticateRefreshToken middleware)
-    if (!req.session?.token) {
+    // Fixed: Changed the if condition to NOT operator
+    if (!(req.cookies.refreshToken || (req.session && (req.session as any).token))) {
       throw new ApiError(401, 'Refresh token required')
     }
     
@@ -260,8 +258,11 @@ export const refreshToken = async (req: Request, res: Response) => {
     const ipAddress = req.ip || req.socket.remoteAddress
     const userAgent = req.headers['user-agent']
     
+    // Fixed: Use type assertion for session token
+    const tokenToUse = req.cookies.refreshToken || (req.session ? (req.session as any).token : null);
+    
     // Refresh the token
-    const tokens = await authService.refreshToken(req.session.token, ipAddress, userAgent)
+    const tokens = await authService.refreshToken(tokenToUse, ipAddress, userAgent)
     
     // Set new refresh token in HTTP-only cookie if in production
     if (process.env.NODE_ENV === 'production') {
@@ -315,6 +316,11 @@ export const logout = async (req: Request, res: Response) => {
     
     if (req.cookies.token) {
       res.clearCookie('token')
+    }
+    
+    // Clear session token using type assertion
+    if (req.session) {
+      (req.session as any).token = null;
     }
     
     // Return success

@@ -1,305 +1,297 @@
-<!-- File: packages/backend/src/admin/views/dashboard/index.ejs -->
-
 <%- contentFor('body') %>
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-  <!-- Total Users Card -->
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-gray-700">Total Users</h3>
-      <span class="inline-flex items-center justify-center p-2 rounded-md bg-blue-100 text-blue-600">
-        <i class="fas fa-users"></i>
-      </span>
-    </div>
-    <p class="text-3xl font-bold text-gray-800"><%= stats.usersCount %></p>
-    <div class="mt-2 text-sm text-gray-500">Regular system users</div>
-  </div>
-
-  <!-- Professionals Card -->
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-gray-700">Professionals</h3>
-      <span class="inline-flex items-center justify-center p-2 rounded-md bg-green-100 text-green-600">
-        <i class="fas fa-user-tie"></i>
-      </span>
-    </div>
-    <p class="text-3xl font-bold text-gray-800"><%= stats.professionalsCount.total %></p>
-    <div class="mt-2 text-sm text-gray-500">
-      <span class="text-amber-500 font-medium"><%= stats.professionalsCount.pending %> pending</span> | 
-      <span class="text-green-500 font-medium"><%= stats.professionalsCount.verified %> verified</span>
-    </div>
-  </div>
-
-  <!-- Items Card -->
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-gray-700">Total Items</h3>
-      <span class="inline-flex items-center justify-center p-2 rounded-md bg-purple-100 text-purple-600">
-        <i class="fas fa-gem"></i>
-      </span>
-    </div>
-    <p class="text-3xl font-bold text-gray-800">
-      <%= stats.gemstonesCount + stats.roughStonesCount + stats.jewelryCount %>
-    </p>
-    <div class="mt-2 text-sm text-gray-500">
-      <%= stats.gemstonesCount %> gemstones, <%= stats.roughStonesCount %> rough, <%= stats.jewelryCount %> jewelry
-    </div>
-  </div>
-
-  <!-- Marketplace Card -->
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-gray-700">Marketplace</h3>
-      <span class="inline-flex items-center justify-center p-2 rounded-md bg-amber-100 text-amber-600">
-        <i class="fas fa-store"></i>
-      </span>
-    </div>
-    <p class="text-3xl font-bold text-gray-800"><%= stats.marketplaceStats.activeListings %></p>
-    <div class="mt-2 text-sm text-gray-500">
-      <%= stats.marketplaceStats.completedOrders %> orders | $<%= stats.marketplaceStats.salesVolume.toLocaleString() %> sales
-    </div>
-  </div>
-</div>
-
-<!-- System Status Section -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-  <!-- System Health Card -->
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">System Health</h3>
+<div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+  
+  <!-- Welcome Banner -->
+  <div class="relative bg-primary-700 p-4 sm:p-6 rounded-sm overflow-hidden mb-8">
     
-    <div class="space-y-4">
-      <!-- Professional Verification -->
-      <div>
-        <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium text-gray-600">Professional Verification</span>
-          <span class="text-sm font-medium text-gray-800"><%= stats.professionalsCount.verified %>/<%= stats.professionalsCount.total %></span>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
-          <div class="bg-green-500 h-2 rounded-full" style="width: <%= percentages.professionals %>%"></div>
-        </div>
-      </div>
-      
-      <!-- System Uptime -->
-      <div>
-        <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium text-gray-600">System Uptime</span>
-          <span class="text-sm font-medium text-gray-800">99.9%</span>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
-          <div class="bg-blue-500 h-2 rounded-full" style="width: 99.9%"></div>
-        </div>
-      </div>
-      
-      <!-- Database Status -->
-      <div>
-        <div class="flex justify-between items-center mb-1">
-          <span class="text-sm font-medium text-gray-600">Database Status</span>
-          <span class="text-sm font-medium text-green-600">Healthy</span>
-        </div>
-        <div class="w-full bg-gray-200 rounded-full h-2">
-          <div class="bg-green-500 h-2 rounded-full" style="width: 100%"></div>
-        </div>
-      </div>
+    <!-- Background illustration -->
+    <div class="absolute right-0 top-0 -mt-4 mr-16 pointer-events-none hidden xl:block" aria-hidden="true">
+      <svg width="319" height="198" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <defs>
+          <path id="welcome-a" d="M64 0l64 128-64-20-64 20z" />
+          <path id="welcome-e" d="M40 0l40 80-40-12.5L0 80z" />
+          <path id="welcome-g" d="M40 0l40 80-40-12.5L0 80z" />
+          <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="welcome-b">
+            <stop stop-color="#A5B4FC" offset="0%" />
+            <stop stop-color="#818CF8" offset="100%" />
+          </linearGradient>
+          <linearGradient x1="50%" y1="24.537%" x2="50%" y2="100%" id="welcome-c">
+            <stop stop-color="#4338CA" offset="0%" />
+            <stop stop-color="#6366F1" stop-opacity="0" offset="100%" />
+          </linearGradient>
+        </defs>
+        <g fill="none" fill-rule="evenodd">
+          <g transform="rotate(64 93.428 84.636)">
+            <use fill="url(#welcome-b)" xlink:href="#welcome-a" />
+            <use fill="url(#welcome-c)" xlink:href="#welcome-a" />
+          </g>
+          <g transform="rotate(-51 150.495 91.511)">
+            <use fill="url(#welcome-b)" xlink:href="#welcome-e" />
+            <use fill="url(#welcome-c)" xlink:href="#welcome-e" />
+          </g>
+          <g transform="rotate(44 98.585 106.648)">
+            <use fill="url(#welcome-b)" xlink:href="#welcome-g" />
+            <use fill="url(#welcome-c)" xlink:href="#welcome-g" />
+          </g>
+        </g>
+      </svg>
     </div>
     
-    <div class="mt-4">
-      <a href="/admin/system/status" class="text-sm text-primary-600 hover:text-primary-800 font-medium">
-        View system details →
-      </a>
+    <!-- Content -->
+    <div class="relative">
+      <h1 class="text-2xl md:text-3xl text-white font-bold mb-1">Welcome back, <%= user.name || 'Admin' %> 👋</h1>
+      <p class="text-white opacity-80">
+        Here's what's happening with your gemstone system today:
+      </p>
     </div>
+    
   </div>
-
-  <!-- Quick Links Card -->
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Quick Actions</h3>
+  
+  <!-- Dashboard Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     
-    <div class="grid grid-cols-2 gap-3">
-      <a href="/admin/users/create" class="flex items-center p-3 rounded bg-gray-50 hover:bg-gray-100 transition">
-        <i class="fas fa-user-plus text-blue-500 mr-2"></i>
-        <span class="text-sm font-medium text-gray-700">Add User</span>
-      </a>
-      
-      <a href="/admin/professionals/pending" class="flex items-center p-3 rounded bg-gray-50 hover:bg-gray-100 transition">
-        <i class="fas fa-user-check text-green-500 mr-2"></i>
-        <span class="text-sm font-medium text-gray-700">Verify Pro</span>
-      </a>
-      
-      <a href="/admin/reference-data" class="flex items-center p-3 rounded bg-gray-50 hover:bg-gray-100 transition">
-        <i class="fas fa-database text-purple-500 mr-2"></i>
-        <span class="text-sm font-medium text-gray-700">Reference Data</span>
-      </a>
-      
-      <a href="/admin/system/backup" class="flex items-center p-3 rounded bg-gray-50 hover:bg-gray-100 transition">
-        <i class="fas fa-download text-amber-500 mr-2"></i>
-        <span class="text-sm font-medium text-gray-700">Backup DB</span>
-      </a>
-    </div>
-    
-    <div class="mt-4">
-      <a href="/admin/system/audit-log" class="text-sm text-primary-600 hover:text-primary-800 font-medium">
-        View audit log →
-      </a>
-    </div>
-  </div>
-
-  <!-- Recent Activity Card -->
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-700 mb-4">Recent Activity</h3>
-    
-    <div class="space-y-3">
-      <% if (stats.recentUsers && stats.recentUsers.length > 0) { %>
-        <% stats.recentUsers.slice(0, 3).forEach(user => { %>
-          <div class="flex items-start p-3 bg-gray-50 rounded">
-            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
-              <i class="fas fa-user-circle"></i>
-            </div>
-            <div class="ml-3">
-              <p class="text-sm font-medium text-gray-700">New user registered: <%= user.name %></p>
-              <p class="text-xs text-gray-500"><%= new Date(user.createdAt).toLocaleString() %></p>
-            </div>
+    <!-- Users Card -->
+    <div class="bg-white shadow-lg rounded-sm border border-slate-200 p-5">
+      <div class="flex items-center justify-between space-x-4">
+        <div>
+          <div class="text-sm font-semibold text-slate-400 uppercase mb-2">Total Users</div>
+          <div class="text-3xl font-bold text-slate-800">2,540</div>
+          <div class="text-sm font-medium text-slate-500 mt-2">
+            <span class="text-emerald-500">+7.4%</span> from last month
           </div>
-        <% }) %>
-      <% } else { %>
-        <div class="text-sm text-gray-500 italic">No recent activity to display</div>
-      <% } %>
+        </div>
+        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-100 text-primary-600">
+          <i class="fas fa-users"></i>
+        </div>
+      </div>
     </div>
     
-    <div class="mt-4">
-      <a href="/admin/activity" class="text-sm text-primary-600 hover:text-primary-800 font-medium">
-        View all activity →
-      </a>
+    <!-- Gemstones Card -->
+    <div class="bg-white shadow-lg rounded-sm border border-slate-200 p-5">
+      <div class="flex items-center justify-between space-x-4">
+        <div>
+          <div class="text-sm font-semibold text-slate-400 uppercase mb-2">Active Gemstones</div>
+          <div class="text-3xl font-bold text-slate-800">1,258</div>
+          <div class="text-sm font-medium text-slate-500 mt-2">
+            <span class="text-emerald-500">+12.2%</span> from last month
+          </div>
+        </div>
+        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600">
+          <i class="fas fa-gem"></i>
+        </div>
+      </div>
     </div>
+    
+    <!-- Rough Stones Card -->
+    <div class="bg-white shadow-lg rounded-sm border border-slate-200 p-5">
+      <div class="flex items-center justify-between space-x-4">
+        <div>
+          <div class="text-sm font-semibold text-slate-400 uppercase mb-2">Rough Stones</div>
+          <div class="text-3xl font-bold text-slate-800">436</div>
+          <div class="text-sm font-medium text-slate-500 mt-2">
+            <span class="text-rose-500">-3.2%</span> from last month
+          </div>
+        </div>
+        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-amber-100 text-amber-600">
+          <i class="fas fa-cubes"></i>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Marketplace Card -->
+    <div class="bg-white shadow-lg rounded-sm border border-slate-200 p-5">
+      <div class="flex items-center justify-between space-x-4">
+        <div>
+          <div class="text-sm font-semibold text-slate-400 uppercase mb-2">Monthly Revenue</div>
+          <div class="text-3xl font-bold text-slate-800">$89,241</div>
+          <div class="text-sm font-medium text-slate-500 mt-2">
+            <span class="text-emerald-500">+5.4%</span> from last month
+          </div>
+        </div>
+        <div class="w-12 h-12 rounded-full flex items-center justify-center bg-violet-100 text-violet-600">
+          <i class="fas fa-store"></i>
+        </div>
+      </div>
+    </div>
+    
   </div>
-</div>
-
-<!-- Recent Users and Orders Section -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  <!-- Recent Users -->
-  <div class="bg-white rounded-lg shadow-md">
-    <div class="p-6 border-b border-gray-200">
-      <h3 class="text-lg font-semibold text-gray-700">Recent Users</h3>
-    </div>
-    <div class="p-6">
-      <% if (stats.recentUsers && stats.recentUsers.length > 0) { %>
+  
+  <!-- Recent Activity and Stats -->
+  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-6">
+    
+    <!-- Recent Activity -->
+    <div class="col-span-2 bg-white shadow-lg rounded-sm border border-slate-200">
+      <header class="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+        <h2 class="font-semibold text-slate-800">Recent Activity</h2>
+        <a href="#" class="text-sm font-medium text-primary-500 hover:text-primary-600">View All</a>
+      </header>
+      <div class="p-3">
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead>
+          <table class="table-auto w-full">
+            <thead class="text-xs font-semibold uppercase text-slate-500 bg-slate-50">
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                <th class="p-2 whitespace-nowrap">
+                  <div class="font-semibold text-left">Type</div>
+                </th>
+                <th class="p-2 whitespace-nowrap">
+                  <div class="font-semibold text-left">Description</div>
+                </th>
+                <th class="p-2 whitespace-nowrap">
+                  <div class="font-semibold text-left">User</div>
+                </th>
+                <th class="p-2 whitespace-nowrap">
+                  <div class="font-semibold text-center">Date</div>
+                </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
-              <% stats.recentUsers.forEach(user => { %>
-                <tr>
-                  <td class="px-4 py-3 text-sm font-medium text-gray-900">
-                    <a href="/admin/users/<%= user.id %>" class="hover:text-primary-600">
-                      <%= user.name %>
-                    </a>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-gray-500"><%= user.email %></td>
-                  <td class="px-4 py-3 text-sm text-gray-500">
-                    <span class="px-2 py-1 text-xs font-medium rounded-full 
-                      <%= user.role === 'admin' ? 'bg-red-100 text-red-800' : 
-                         user.role === 'dealer' || user.role === 'cutter' || user.role === 'appraiser' ? 'bg-purple-100 text-purple-800' :
-                         'bg-green-100 text-green-800' %>">
-                      <%= user.role %>
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-gray-500">
-                    <%= new Date(user.createdAt).toLocaleDateString() %>
-                  </td>
-                </tr>
-              <% }) %>
+            <tbody class="text-sm divide-y divide-slate-100">
+              <tr>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-500">
+                      <i class="fas fa-gem text-xs"></i>
+                    </div>
+                    <div class="font-medium text-slate-800 ml-2">Gemstone</div>
+                  </div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="text-left">Added new ruby (ID: GEM123456)</div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center mr-2">JD</div>
+                    <div class="font-medium text-slate-800">John Doe</div>
+                  </div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="text-center">15 min ago</div>
+                </td>
+              </tr>
+              <tr>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center bg-violet-100 text-violet-500">
+                      <i class="fas fa-certificate text-xs"></i>
+                    </div>
+                    <div class="font-medium text-slate-800 ml-2">Certificate</div>
+                  </div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="text-left">Created certificate (ID: CERT7890)</div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center mr-2">SJ</div>
+                    <div class="font-medium text-slate-800">Sarah Johnson</div>
+                  </div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="text-center">2 hours ago</div>
+                </td>
+              </tr>
+              <tr>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center bg-amber-100 text-amber-500">
+                      <i class="fas fa-user-tie text-xs"></i>
+                    </div>
+                    <div class="font-medium text-slate-800 ml-2">Professional</div>
+                  </div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="text-left">Approved new appraiser account</div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center mr-2">RM</div>
+                    <div class="font-medium text-slate-800">Robert Miller</div>
+                  </div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="text-center">5 hours ago</div>
+                </td>
+              </tr>
+              <tr>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center bg-rose-100 text-rose-500">
+                      <i class="fas fa-shopping-cart text-xs"></i>
+                    </div>
+                    <div class="font-medium text-slate-800 ml-2">Order</div>
+                  </div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="text-left">Processed new order (#ORD98765)</div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center mr-2">JM</div>
+                    <div class="font-medium text-slate-800">Jane Martin</div>
+                  </div>
+                </td>
+                <td class="p-2 whitespace-nowrap">
+                  <div class="text-center">Yesterday</div>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
-        <div class="mt-4">
-          <a href="/admin/users" class="text-sm text-primary-600 hover:text-primary-800 font-medium">
-            View all users →
-          </a>
-        </div>
-      <% } else { %>
-        <div class="text-sm text-gray-500 italic">No users to display</div>
-      <% } %>
+      </div>
     </div>
-  </div>
-
-  <!-- Recent Orders -->
-  <div class="bg-white rounded-lg shadow-md">
-    <div class="p-6 border-b border-gray-200">
-      <h3 class="text-lg font-semibold text-gray-700">Recent Orders</h3>
-    </div>
-    <div class="p-6">
-      <% if (stats.recentOrders && stats.recentOrders.length > 0) { %>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              <% stats.recentOrders.forEach(order => { %>
-                <tr>
-                  <td class="px-4 py-3 text-sm font-medium text-gray-900">
-                    <a href="/admin/marketplace/orders/<%= order.id %>" class="hover:text-primary-600">
-                      #<%= order.id.substring(0, 8) %>
-                    </a>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-gray-500">
-                    <a href="/admin/users/<%= order.userId %>" class="hover:text-primary-600">
-                      <%= order.userName %>
-                    </a>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-gray-500">$<%= order.total.toFixed(2) %></td>
-                  <td class="px-4 py-3 text-sm">
-                    <span class="px-2 py-1 text-xs font-medium rounded-full 
-                      <%= order.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' : 
-                        'bg-blue-100 text-blue-800' %>">
-                      <%= order.status %>
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-sm text-gray-500">
-                    <%= new Date(order.createdAt).toLocaleDateString() %>
-                  </td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
-        </div>
-        <div class="mt-4">
-          <a href="/admin/marketplace/orders" class="text-sm text-primary-600 hover:text-primary-800 font-medium">
-            View all orders →
-          </a>
-        </div>
-      <% } else { %>
-        <div class="flex flex-col items-center justify-center py-12">
-          <div class="text-gray-400 mb-4">
-            <i class="fas fa-shopping-cart text-5xl"></i>
+    
+    <!-- System Stats -->
+    <div class="bg-white shadow-lg rounded-sm border border-slate-200">
+      <header class="px-5 py-4 border-b border-slate-100">
+        <h2 class="font-semibold text-slate-800">System Statistics</h2>
+      </header>
+      <div class="p-5">
+        
+        <!-- System Health -->
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm font-semibold text-slate-500">System Health</div>
+            <div class="text-sm font-bold text-emerald-500">98%</div>
           </div>
-          <p class="text-gray-500 mb-1">No orders yet</p>
-          <p class="text-sm text-gray-400">Orders will appear here once the marketplace is active</p>
+          <div class="relative w-full h-2 bg-slate-100 rounded">
+            <div class="absolute left-0 top-0 bottom-0 bg-emerald-500 rounded" style="width: 98%"></div>
+          </div>
         </div>
-      <% } %>
+        
+        <!-- Storage -->
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm font-semibold text-slate-500">Storage</div>
+            <div class="text-sm font-bold text-blue-500">68%</div>
+          </div>
+          <div class="relative w-full h-2 bg-slate-100 rounded">
+            <div class="absolute left-0 top-0 bottom-0 bg-blue-500 rounded" style="width: 68%"></div>
+          </div>
+        </div>
+        
+        <!-- Database -->
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm font-semibold text-slate-500">Database Load</div>
+            <div class="text-sm font-bold text-amber-500">45%</div>
+          </div>
+          <div class="relative w-full h-2 bg-slate-100 rounded">
+            <div class="absolute left-0 top-0 bottom-0 bg-amber-500 rounded" style="width: 45%"></div>
+          </div>
+        </div>
+        
+        <!-- Requests -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm font-semibold text-slate-500">API Requests</div>
+            <div class="text-sm font-bold text-violet-500">1.2k/min</div>
+          </div>
+          <div class="relative w-full h-2 bg-slate-100 rounded">
+            <div class="absolute left-0 top-0 bottom-0 bg-violet-500 rounded" style="width: 32%"></div>
+          </div>
+        </div>
+        
+      </div>
     </div>
   </div>
 </div>
-
-<%- contentFor('scripts') %>
-<script src="/admin/js/charts.js"></script>
-<script>
-  // Initialize any dashboard-specific JavaScript here
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log('Dashboard initialized');
-    // Additional dashboard initialization code
-  });
-</script>

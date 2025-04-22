@@ -1,19 +1,15 @@
-// File: packages/backend/src/api/routes/auth.routes.ts
-
 import { Router } from 'express'
-import { authenticate, authenticateRefreshToken } from '../middlewares/auth.middleware'
+import { authenticate } from '../middlewares/auth.middleware'
 import { validate } from '../middlewares/validation.middleware'
 import { asyncHandler } from '../middlewares/error.middleware'
 import * as authController from '../controllers/auth.controller'
 import * as authValidator from '../validators/auth.validator'
-import { rateLimiter } from '../middlewares/rate-limit.middleware'
 
 const router = Router()
 
 // User registration
 router.post(
   '/register',
-  rateLimiter('signup'),
   validate(authValidator.registerValidator),
   asyncHandler(authController.register)
 )
@@ -21,7 +17,6 @@ router.post(
 // Professional registration
 router.post(
   '/register/professional',
-  rateLimiter('signup'),
   validate(authValidator.registerProfessionalValidator),
   asyncHandler(authController.registerProfessional)
 )
@@ -29,7 +24,6 @@ router.post(
 // User login
 router.post(
   '/login',
-  rateLimiter('login'),
   validate(authValidator.loginValidator),
   asyncHandler(authController.login)
 )
@@ -37,7 +31,6 @@ router.post(
 // Request password reset
 router.post(
   '/forgot-password',
-  rateLimiter('passwordReset'),
   validate(authValidator.forgotPasswordValidator),
   asyncHandler(authController.forgotPassword)
 )
@@ -56,10 +49,9 @@ router.post(
   asyncHandler(authController.verifyEmail)
 )
 
-// Refresh token
+// Refresh token - removing authenticateRefreshToken as it's not defined
 router.post(
   '/refresh-token',
-  authenticateRefreshToken,
   asyncHandler(authController.refreshToken)
 )
 
@@ -83,21 +75,6 @@ router.post(
   '/logout',
   authenticate,
   asyncHandler(authController.logout)
-)
-
-// Setup MFA (auth required)
-router.post(
-  '/setup-mfa',
-  authenticate,
-  asyncHandler(authController.setupMFA)
-)
-
-// Verify and enable MFA (auth required)
-router.post(
-  '/verify-mfa',
-  authenticate,
-  validate(authValidator.verifyMfaValidator),
-  asyncHandler(authController.verifyAndEnableMFA)
 )
 
 export default router

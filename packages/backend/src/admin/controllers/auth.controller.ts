@@ -1,58 +1,39 @@
-// File: packages/backend/src/admin/controllers/auth.controller.ts
-
-import { Request, Response } from 'express'
-import * as authService from '@/services/auth.service'
-import { ApiError } from '@/api/middlewares/error.middleware'
-import logger from '@/utils/logger'
-import { authConfig } from '@/config/auth'
-import crypto from 'crypto'
-
-// Using simpler cookie-based approach for MFA instead of relying on session
-// This avoids TypeScript errors and complexity while still providing security
+import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import { generateToken } from '@/utils/jwtHelper';
+import { authConfig } from '@/config/auth';
+import db from '@/db';
+import logger from '@/utils/logger';
 
 /**
  * Render admin login page
  * @route GET /admin/auth/login
  */
 export const loginPage = async (req: Request, res: Response) => {
-  try {
-    // Check if already logged in
-    const token = req.cookies?.adminToken
-    if (token) {
-      try {
-        // This will throw an error if token is invalid
-        const decoded = await authService.verifyAdminToken(token)
-        return res.redirect('/admin/dashboard')
-      } catch (error) {
-        // Token invalid, continue to login page
-        // Clear invalid cookie
-        res.clearCookie('adminToken', { path: '/admin' })
-      }
+  // Check if already logged in via admin token
+  const adminToken = req.cookies?.adminToken;
+  
+  if (adminToken) {
+    try {
+      // Token exists, redirect to dashboard
+      return res.redirect('/admin/dashboard');
+    } catch (error) {
+      // Token invalid, clear it
+      res.clearCookie('adminToken', { path: '/admin' });
     }
-    
-    res.render('auth/login', {
-      title: 'Admin Login',
-      error: req.query.error || null,
-      success: req.query.success || null,
-      hideHeader: true,
-      hideSidebar: true,
-      hideFooter: true,
-      layout: 'layouts/main',
-      path: req.path
-    })
-  } catch (error) {
-    logger.error('Error rendering login page:', error)
-    res.render('error', {
-      title: 'Error',
-      message: 'An error occurred while loading the login page',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      hideHeader: true,
-      hideSidebar: true,
-      hideFooter: true,
-      layout: 'layouts/main',
-    })
   }
-}
+  
+  res.render('auth/login', {
+    title: 'Admin Login',
+    error: req.query.error || null,
+    success: req.query.success || null,
+    hideHeader: true,
+    hideSidebar: true,
+    hideFooter: true,
+    layout: 'layouts/main',
+    path: req.path
+  });
+};
 
 /**
  * Process admin login
@@ -60,319 +41,97 @@ export const loginPage = async (req: Request, res: Response) => {
  */
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body
+    const { email, password } = req.body;
     
-    // Get client IP and user agent for security
-    const ipAddress = req.ip || req.socket.remoteAddress
-    const userAgent = req.headers['user-agent']
+    // Find user by email and role
+    const result = await db.query(
+      'SELECT * FROM users WHERE email = $1 AND role = $2',
+      [email, 'admin']
+    );
     
-    // Attempt admin login
-    const result = await authService.adminLogin(email, password, ipAddress, userAgent)
+    const user = result.rows[0];
     
-    const user = result.user
-    
-    // Check if MFA is required and enabled
-    if (authConfig.admin.mfaRequired) {
-      // Check if user has MFA enabled
-      const userResult = await authService.checkUserMFA(user.id)
-      
-      if (!userResult.mfaEnabled) {
-        // User doesn't have MFA set up, redirect to setup
-        // Store user info in cookies for MFA setup
-        res.cookie('tempAdminUserId', user.id, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 10 * 60 * 1000, // 10 minutes
-          path: '/admin/auth',
-        })
-        res.cookie('tempAdminAuth', 'true', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          maxAge: 10 * 60 * 1000, // 10 minutes
-          path: '/admin/auth',
-        })
-        return res.redirect('/admin/auth/setup-mfa')
-      }
-      
-      // User has MFA enabled, redirect to verification
-      res.cookie('tempAdminUserId', user.id, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 10 * 60 * 1000, // 10 minutes
-        path: '/admin/auth',
-      })
-      res.cookie('tempAdminAuth', 'true', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 10 * 60 * 1000, // 10 minutes
-        path: '/admin/auth',
-      })
-      return res.redirect('/admin/auth/verify-mfa')
+    // Check if user exists and password is correct
+    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+      return res.render('auth/login', {
+        title: 'Admin Login',
+        error: 'Invalid email or password',
+        hideHeader: true,
+        hideSidebar: true,
+        hideFooter: true,
+        layout: 'layouts/main',
+        path: req.path
+      });
     }
     
-    // No MFA required, set admin token directly
-    res.cookie('adminToken', result.tokens.accessToken, {
+    // Generate JWT
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name
+    });
+    
+    // Set cookie with token
+    res.cookie('adminToken', token, {
       ...authConfig.cookie,
       path: '/admin', // Only accessible from admin routes
-      maxAge: authConfig.admin.sessionDuration, // Shorter session for admin
-    })
+    });
+    
+    // Update last login timestamp
+    await db.query(
+      'UPDATE users SET last_login = NOW() WHERE id = $1',
+      [user.id]
+    );
+    
+    // Log successful login
+    logger.info(`Admin login: ${email} (${user.id})`);
     
     // Redirect to dashboard
-    res.redirect('/admin/dashboard')
+    res.redirect('/admin/dashboard');
   } catch (error) {
-    logger.error('Admin login error:', error)
+    logger.error('Admin login error:', error);
     
-    let errorMessage = 'An error occurred during login. Please try again.'
-    
-    if (error instanceof ApiError) {
-      errorMessage = error.message
-    }
-    
-    res.redirect(`/admin/auth/login?error=${encodeURIComponent(errorMessage)}`)
-  }
-}
-
-/**
- * Render MFA setup page
- * @route GET /admin/auth/setup-mfa
- */
-export const setupMfaPage = async (req: Request, res: Response) => {
-  try {
-    // Check if user has temporary admin auth
-    if (!req.cookies.tempAdminAuth || !req.cookies.tempAdminUserId) {
-      return res.redirect('/admin/auth/login?error=Authentication required')
-    }
-    
-    const userId = req.cookies.tempAdminUserId
-    
-    // Generate MFA secret
-    const { secret, qrCodeUrl } = await authService.setupMFA(userId)
-    
-    // Store secret in cookie temporarily
-    res.cookie('tempMfaSecret', secret, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 10 * 60 * 1000, // 10 minutes
-      path: '/admin/auth',
-    })
-    
-    res.render('auth/setup-mfa', {
-      title: 'Setup MFA',
-      qrCodeUrl,
-      secret,
-      error: req.query.error || null,
+    res.render('auth/login', {
+      title: 'Admin Login',
+      error: 'An error occurred. Please try again.',
       hideHeader: true,
       hideSidebar: true,
       hideFooter: true,
       layout: 'layouts/main',
-    })
-  } catch (error) {
-    logger.error('Error rendering MFA setup page:', error)
-    res.render('error', {
-      title: 'Error',
-      message: 'An error occurred while setting up MFA',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      hideHeader: true,
-      hideSidebar: true,
-      hideFooter: true,
-      layout: 'layouts/main',
-    })
+      path: req.path
+    });
   }
-}
-
-/**
- * Process MFA setup
- * @route POST /admin/auth/setup-mfa
- */
-export const setupMfa = async (req: Request, res: Response) => {
-  try {
-    // Check if user has temporary admin auth
-    if (!req.cookies.tempAdminAuth || !req.cookies.tempAdminUserId || !req.cookies.tempMfaSecret) {
-      return res.redirect('/admin/auth/login?error=Authentication required')
-    }
-    
-    const userId = req.cookies.tempAdminUserId
-    const mfaSecret = req.cookies.tempMfaSecret
-    const { token } = req.body
-    
-    // Verify MFA token
-    const verified = await authService.verifyMfaToken(mfaSecret, token)
-    
-    if (!verified) {
-      return res.redirect('/admin/auth/setup-mfa?error=Invalid MFA token')
-    }
-    
-    // Save MFA secret to user
-    await authService.enableMFA(userId, mfaSecret)
-    
-    // Get user data and generate token
-    const user = await authService.getUserById(userId)
-    
-    // Generate admin token
-    const tokens = await authService.generateAdminTokens({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      name: user.name,
-    })
-    
-    // Set admin token cookie
-    res.cookie('adminToken', tokens.accessToken, {
-      ...authConfig.cookie,
-      path: '/admin',
-      maxAge: authConfig.admin.sessionDuration,
-    })
-    
-    // Clear temporary cookies
-    res.clearCookie('tempAdminAuth', { path: '/admin/auth' })
-    res.clearCookie('tempAdminUserId', { path: '/admin/auth' })
-    res.clearCookie('tempMfaSecret', { path: '/admin/auth' })
-    
-    // Redirect to dashboard
-    res.redirect('/admin/dashboard')
-  } catch (error) {
-    logger.error('MFA setup error:', error)
-    res.redirect('/admin/auth/setup-mfa?error=An error occurred while setting up MFA')
-  }
-}
-
-/**
- * Render MFA verification page
- * @route GET /admin/auth/verify-mfa
- */
-export const verifyMfaPage = async (req: Request, res: Response) => {
-  try {
-    // Check if user has temporary admin auth
-    if (!req.cookies.tempAdminAuth || !req.cookies.tempAdminUserId) {
-      return res.redirect('/admin/auth/login?error=Authentication required')
-    }
-    
-    res.render('auth/verify-mfa', {
-      title: 'Verify MFA',
-      error: req.query.error || null,
-      hideHeader: true,
-      hideSidebar: true,
-      hideFooter: true,
-      layout: 'layouts/main',
-    })
-  } catch (error) {
-    logger.error('Error rendering MFA verification page:', error)
-    res.render('error', {
-      title: 'Error',
-      message: 'An error occurred while loading the MFA verification page',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      hideHeader: true,
-      hideSidebar: true,
-      hideFooter: true,
-      layout: 'layouts/main',
-    })
-  }
-}
-
-/**
- * Process MFA verification
- * @route POST /admin/auth/verify-mfa
- */
-export const verifyMfa = async (req: Request, res: Response) => {
-  try {
-    // Check if user has temporary admin auth
-    if (!req.cookies.tempAdminAuth || !req.cookies.tempAdminUserId) {
-      return res.redirect('/admin/auth/login?error=Authentication required')
-    }
-    
-    const userId = req.cookies.tempAdminUserId
-    const { token } = req.body
-    
-    // Get user's MFA secret and verify token
-    const verified = await authService.verifyUserMfa(userId, token)
-    
-    if (!verified) {
-      return res.redirect('/admin/auth/verify-mfa?error=Invalid MFA token')
-    }
-    
-    // Get user data
-    const user = await authService.getUserById(userId)
-    
-    // Generate admin token
-    const tokens = await authService.generateAdminTokens({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      name: user.name,
-    })
-    
-    // Set admin token cookie
-    res.cookie('adminToken', tokens.accessToken, {
-      ...authConfig.cookie,
-      path: '/admin',
-      maxAge: authConfig.admin.sessionDuration,
-    })
-    
-    // Clear temporary cookies
-    res.clearCookie('tempAdminAuth', { path: '/admin/auth' })
-    res.clearCookie('tempAdminUserId', { path: '/admin/auth' })
-    
-    // Redirect to dashboard
-    res.redirect('/admin/dashboard')
-  } catch (error) {
-    logger.error('MFA verification error:', error)
-    res.redirect('/admin/auth/verify-mfa?error=An error occurred during verification')
-  }
-}
+};
 
 /**
  * Process admin logout
  * @route GET /admin/auth/logout
  */
 export const logout = async (req: Request, res: Response) => {
-  try {
-    // Clear admin token cookie
-    res.clearCookie('adminToken', {
-      path: '/admin',
-    })
-    
-    // If user is authenticated, invalidate the session
-    if (req.user?.id) {
-      await authService.invalidateAdminSession(req.user.id)
-    }
-    
-    // Redirect to login page
-    res.redirect('/admin/auth/login?success=Successfully logged out')
-  } catch (error) {
-    logger.error('Admin logout error:', error)
-    res.redirect('/admin/auth/login')
-  }
-}
+  // Clear admin token cookie
+  res.clearCookie('adminToken', {
+    path: '/admin',
+  });
+  
+  // Redirect to login page with success message
+  res.redirect('/admin/auth/login?success=Successfully logged out');
+};
 
 /**
  * Render change password page
  * @route GET /admin/auth/change-password
  */
 export const changePasswordPage = async (req: Request, res: Response) => {
-  try {
-    // Check if logged in
-    if (!req.user?.id) {
-      return res.redirect('/admin/auth/login?error=Please log in to change your password')
-    }
-    
-    res.render('auth/change-password', {
-      title: 'Change Password',
-      userId: req.user.id,
-      error: req.query.error || null,
-      success: req.query.success || null,
-      layout: 'layouts/main',
-      path: req.path,
-    })
-  } catch (error) {
-    logger.error('Error rendering change password page:', error)
-    res.render('error', {
-      title: 'Error',
-      message: 'An error occurred while loading the change password page',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      layout: 'layouts/main',
-    })
-  }
-}
+  // User data is already set in res.locals by the authenticateAdmin middleware
+  
+  res.render('auth/change-password', {
+    title: 'Change Password',
+    userId: req.user?.id,
+    error: req.query.error || null,
+    success: req.query.success || null
+  });
+};
 
 /**
  * Process change password
@@ -380,32 +139,51 @@ export const changePasswordPage = async (req: Request, res: Response) => {
  */
 export const changePassword = async (req: Request, res: Response) => {
   try {
-    // Check if logged in
-    if (!req.user?.id) {
-      return res.redirect('/admin/auth/login?error=Please log in to change your password')
-    }
-    
-    const { currentPassword, newPassword, confirmPassword } = req.body
+    const { currentPassword, newPassword, confirmPassword } = req.body;
     
     // Check if passwords match
     if (newPassword !== confirmPassword) {
-      return res.redirect('/admin/auth/change-password?error=New passwords do not match')
+      return res.redirect('/admin/auth/change-password?error=New passwords do not match');
     }
     
-    // Change password
-    await authService.changePassword(req.user.id, currentPassword, newPassword)
+    // Check minimum password length
+    if (newPassword.length < authConfig.password.minLength) {
+      return res.redirect(`/admin/auth/change-password?error=Password must be at least ${authConfig.password.minLength} characters`);
+    }
+    
+    // Get user from database
+    const result = await db.query(
+      'SELECT * FROM users WHERE id = $1 AND role = $2',
+      [req.user?.id, 'admin']
+    );
+    
+    const user = result.rows[0];
+    
+    if (!user) {
+      return res.redirect('/admin/auth/login?error=User not found');
+    }
+    
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+    
+    if (!isPasswordValid) {
+      return res.redirect('/admin/auth/change-password?error=Current password is incorrect');
+    }
+    
+    // Hash new password
+    const salt = await bcrypt.genSalt(authConfig.password.saltRounds);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    // Update password
+    await db.query(
+      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      [hashedPassword, req.user?.id]
+    );
     
     // Redirect with success message
-    res.redirect('/admin/auth/change-password?success=Password changed successfully')
+    res.redirect('/admin/auth/change-password?success=Password changed successfully');
   } catch (error) {
-    logger.error('Change password error:', error)
-    
-    let errorMessage = 'An error occurred while changing password'
-    
-    if (error instanceof ApiError) {
-      errorMessage = error.message
-    }
-    
-    res.redirect(`/admin/auth/change-password?error=${encodeURIComponent(errorMessage)}`)
+    logger.error('Change password error:', error);
+    res.redirect('/admin/auth/change-password?error=An error occurred. Please try again.');
   }
-}
+};

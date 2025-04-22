@@ -1,6 +1,4 @@
-// File: packages/backend/src/server.ts
-
-import express, { Express, Request, Response, NextFunction } from 'express'
+import express, { Express } from 'express'
 import helmet from 'helmet'
 import compression from 'compression'
 import cors from 'cors'
@@ -10,7 +8,9 @@ import cookieParser from 'cookie-parser'
 import { rateLimit } from 'express-rate-limit'
 import expressLayouts from 'express-ejs-layouts'
 import session from 'express-session'
-import crypto from 'crypto'
+
+// Import custom type definitions
+import './types/express-session' // This ensures our session type definitions are loaded
 
 // Import routes
 import apiRoutes from './api/routes'
@@ -18,38 +18,23 @@ import adminRoutes from './admin/routes'
 
 // Import middlewares
 import { errorMiddleware } from './api/middlewares/error.middleware'
+import { generateCsrf } from './api/middlewares/csrf.middleware'
 
 // Import configuration
 import { corsOptions } from './config/cors'
-
-// Session configuration
-const sessionConfig = {
-  secret: process.env.SESSION_SECRET || 'your_session_secret_key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
-  },
-  name: 'sid',
-}
 
 export const createServer = (): Express => {
   const app = express()
 
   // Security headers
   app.use(helmet({
+    // Allow inline scripts for EJS templates
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-        fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
-        imgSrc: ["'self'", "data:"],
-      }
-    }
+        "script-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+        "img-src": ["'self'", "data:"],
+      },
+    },
   }))
 
   // Parse JSON bodies
@@ -60,9 +45,6 @@ export const createServer = (): Express => {
   
   // Parse cookies
   app.use(cookieParser())
-  
-  // Set up session middleware
-  app.use(session(sessionConfig))
   
   // Enable CORS
   app.use(cors(corsOptions))
@@ -81,6 +63,35 @@ export const createServer = (): Express => {
     legacyHeaders: false,
   })
   
+  // Setup session middleware
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    }
+  }))
+
+  // Generate CSRF token for all requests
+  app.use(generateCsrf)
+  
+  // Make user data available to templates
+  app.use((req, res, next) => {
+    // If there's a user in the session, make it available to views
+    // Using type assertion to avoid TypeScript errors
+    if (req.session && (req.session as any).user) {
+      res.locals.user = (req.session as any).user
+    }
+    
+    // Add the path for sidebar highlighting
+    res.locals.path = req.path
+    
+    next()
+  })
+  
   // Apply rate limiting to API routes
   app.use(`${process.env.API_PREFIX || '/api'}`, apiLimiter)
   
@@ -96,21 +107,6 @@ export const createServer = (): Express => {
   app.set('layout', 'layouts/main')
   app.set('layout extractScripts', true)
   app.set('layout extractStyles', true)
-  
-  // CSRF token middleware for forms
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    // Add CSRF token to session if it doesn't exist
-    if (req.session && !req.session.csrfToken) {
-      req.session.csrfToken = crypto.randomBytes(32).toString('hex');
-    }
-    
-    // Make CSRF token available to views
-    if (req.session) {
-      res.locals.csrfToken = req.session.csrfToken;
-    }
-    
-    next();
-  });
   
   // API routes
   app.use(`${process.env.API_PREFIX || '/api'}`, apiRoutes)

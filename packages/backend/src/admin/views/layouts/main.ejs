@@ -4,48 +4,192 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> | Gemstone System Admin</title>
-  
-  <!-- Favicon -->
-  <link rel="icon" href="/admin/img/favicon.ico">
-  
-  <!-- Stylesheets -->
   <link rel="stylesheet" href="/admin/css/tailwind.css">
   <link rel="stylesheet" href="/admin/css/custom.css">
-  
   <!-- Font Awesome for icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" 
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
-  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Font -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <!-- Admin-specific styles -->
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    /* Sidebar Active State */
+    .sidebar-link.active {
+      background-color: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+      border-left: 3px solid #3b82f6;
+    }
+    
+    /* Responsive improvements */
+    @media (max-width: 768px) {
+      .admin-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+      }
+      
+      .admin-sidebar.open {
+        transform: translateX(0);
+      }
+    }
+  </style>
   <!-- Page-specific styles -->
   <% if (typeof styles !== 'undefined') { %>
     <%- styles %>
   <% } %>
-  
-  <!-- CSRF Token Meta -->
-  <meta name="csrf-token" content="<%= csrfToken %>">
-  
-  <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:;">
-  <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
-  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
 </head>
-<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
-  <!-- Header -->
+<body class="bg-gray-100 text-gray-800 min-h-screen">
   <% if (typeof hideHeader === 'undefined' || !hideHeader) { %>
-    <%- include('../partials/header') %>
+    <!-- Header -->
+    <header class="bg-white shadow-sm fixed w-full z-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+        <!-- Left section with mobile menu toggle -->
+        <div class="flex items-center">
+          <button id="sidebarToggle" class="md:hidden text-gray-500 hover:text-gray-700 focus:outline-none">
+            <i class="fas fa-bars text-lg"></i>
+          </button>
+          <h1 class="text-lg font-semibold text-gray-900 ml-4">
+            <%= title %>
+          </h1>
+        </div>
+        
+        <!-- Right section with user info and actions -->
+        <% if (typeof user !== 'undefined' && user) { %>
+          <div class="flex items-center">
+            <!-- Notifications -->
+            <div class="relative mr-4">
+              <button class="text-gray-500 hover:text-gray-700 focus:outline-none">
+                <i class="fas fa-bell"></i>
+                <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+            </div>
+            
+            <!-- User dropdown -->
+            <div class="relative" x-data="{ open: false }">
+              <button @click="open = !open" class="flex items-center text-sm focus:outline-none">
+                <span class="hidden md:inline-block mr-2"><%= user.name %></span>
+                <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white">
+                  <%= user.name ? user.name.charAt(0).toUpperCase() : 'A' %>
+                </div>
+              </button>
+              
+              <!-- Dropdown menu -->
+              <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
+                <a href="/admin/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  Your Profile
+                </a>
+                <a href="/admin/system/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  Settings
+                </a>
+                <div class="border-t border-gray-100"></div>
+                <a href="/admin/auth/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  Sign out
+                </a>
+              </div>
+            </div>
+          </div>
+        <% } else { %>
+          <div>
+            <a href="/admin/auth/login" 
+              class="text-sm font-medium text-primary-600 hover:text-primary-500">
+              Login
+            </a>
+          </div>
+        <% } %>
+      </div>
+    </header>
   <% } %>
-
-  <div class="flex flex-1 min-h-0">
+  
+  <!-- Main Content -->
+  <div class="flex min-h-screen <% if (typeof hideHeader === 'undefined' || !hideHeader) { %>pt-16<% } %>">
     <!-- Sidebar (if not hidden) -->
     <% if (typeof hideSidebar === 'undefined' || !hideSidebar) { %>
-      <%- include('../partials/sidebar') %>
+      <aside id="sidebar" class="fixed inset-y-0 left-0 bg-white shadow-md z-10 w-64 md:translate-x-0 transform -translate-x-full transition-transform duration-300 ease-in-out <% if (typeof hideHeader === 'undefined' || !hideHeader) { %>pt-16<% } %>">
+        <div class="h-full overflow-y-auto scrollbar-thin">
+          <!-- Sidebar Logo (only for non-header views) -->
+          <% if (typeof hideHeader !== 'undefined' && hideHeader) { %>
+            <div class="px-6 py-4 border-b border-gray-200">
+              <h1 class="text-xl font-bold text-primary-600">Gemstone System</h1>
+            </div>
+          <% } %>
+          
+          <!-- Navigation -->
+          <nav class="px-4 py-2">
+            <div class="space-y-1">
+              <!-- Dashboard Link -->
+              <a href="/admin/dashboard" 
+                 class="sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors <%= path === '/admin/dashboard' ? 'active' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' %>">
+                <i class="fas fa-tachometer-alt w-6 text-center mr-3 <%= path === '/admin/dashboard' ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500' %>"></i>
+                Dashboard
+              </a>
+              
+              
+              <!-- Professionals Link -->
+              <a href="/admin/professionals" 
+                 class="sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors <%= path.startsWith('/admin/professionals') ? 'active' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' %>">
+                <i class="fas fa-user-tie w-6 text-center mr-3 <%= path.startsWith('/admin/professionals') ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500' %>"></i>
+                Professionals
+              </a>
+              
+              <!-- Gemstones Link -->
+              <a href="/admin/gemstones" 
+                 class="sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors <%= path.startsWith('/admin/gemstones') ? 'active' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' %>">
+                <i class="fas fa-gem w-6 text-center mr-3 <%= path.startsWith('/admin/gemstones') ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500' %>"></i>
+                Gemstones
+              </a>
+              
+              <!-- Rough Stones Link -->
+              <a href="/admin/rough-stones" 
+                 class="sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors <%= path.startsWith('/admin/rough-stones') ? 'active' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' %>">
+                <i class="fas fa-cubes w-6 text-center mr-3 <%= path.startsWith('/admin/rough-stones') ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500' %>"></i>
+                Rough Stones
+              </a>
+              
+              <!-- Jewelry Link -->
+              <a href="/admin/jewelry" 
+                 class="sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors <%= path.startsWith('/admin/jewelry') ? 'active' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' %>">
+                <i class="fas fa-ring w-6 text-center mr-3 <%= path.startsWith('/admin/jewelry') ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500' %>"></i>
+                Jewelry
+              </a>
+              
+              <!-- Marketplace Link -->
+              <a href="/admin/marketplace" 
+                 class="sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors <%= path.startsWith('/admin/marketplace') ? 'active' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' %>">
+                <i class="fas fa-store w-6 text-center mr-3 <%= path.startsWith('/admin/marketplace') ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500' %>"></i>
+                Marketplace
+              </a>
+              
+              <!-- Certificates Link -->
+              <a href="/admin/certificates" 
+                 class="sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors <%= path.startsWith('/admin/certificates') ? 'active' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' %>">
+                <i class="fas fa-certificate w-6 text-center mr-3 <%= path.startsWith('/admin/certificates') ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500' %>"></i>
+                Certificates
+              </a>
+              
+              <!-- Reference Data Link -->
+              <a href="/admin/reference-data" 
+                 class="sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors <%= path.startsWith('/admin/reference-data') ? 'active' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' %>">
+                <i class="fas fa-database w-6 text-center mr-3 <%= path.startsWith('/admin/reference-data') ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500' %>"></i>
+                Reference Data
+              </a>
+              
+              <!-- System Link -->
+              <a href="/admin/system" 
+                 class="sidebar-link group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors <%= path.startsWith('/admin/system') ? 'active' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' %>">
+                <i class="fas fa-cogs w-6 text-center mr-3 <%= path.startsWith('/admin/system') ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500' %>"></i>
+                System
+              </a>
+            </div>
+          </nav>
+        </div>
+      </aside>
     <% } %>
-
-    <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col <% if (typeof hideSidebar === 'undefined' || !hideSidebar) { %>lg:pl-64<% } %>">
-      <main class="flex-1 p-4 sm:p-6 md:p-8">
+    
+    <!-- Content Area -->
+    <main class="flex-1 overflow-x-hidden <% if (typeof hideSidebar === 'undefined' || !hideSidebar) { %>md:pl-64<% } %>">
+      <div class="container mx-auto px-4 py-6">
         <!-- Flash Messages -->
         <% if (typeof error !== 'undefined' && error) { %>
           <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
@@ -59,63 +203,47 @@
           </div>
         <% } %>
         
-        <!-- Page Title (if any) -->
-        <% if (typeof pageTitle !== 'undefined' && pageTitle) { %>
-          <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-900"><%= pageTitle %></h1>
-            <% if (typeof pageDescription !== 'undefined' && pageDescription) { %>
-              <p class="mt-1 text-sm text-gray-500"><%= pageDescription %></p>
-            <% } %>
-          </div>
-        <% } %>
-        
         <!-- Page Content -->
         <%- body %>
-      </main>
-      
-      <!-- Footer -->
-      <% if (typeof hideFooter === 'undefined' || !hideFooter) { %>
-        <%- include('../partials/footer') %>
-      <% } %>
-    </div>
+      </div>
+    </main>
   </div>
 
-  <!-- Core JavaScript -->
-  <script src="/admin/js/admin.js"></script>
+  <!-- Footer -->
+  <% if (typeof hideFooter === 'undefined' || !hideFooter) { %>
+    <footer class="bg-white shadow-inner mt-auto py-4">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center text-sm text-gray-500">
+          <p>&copy; <%= new Date().getFullYear() %> Gemstone System. All rights reserved.</p>
+          <p class="mt-1">Version 1.0.0</p>
+        </div>
+      </div>
+    </footer>
+  <% } %>
+
+  <!-- Alpine.js for dropdowns -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.10.5/cdn.min.js" defer></script>
   
-  <!-- CSRF Protection -->
+  <!-- Core JavaScript -->
   <script>
-    // Add CSRF token to all AJAX requests
+    // Mobile sidebar toggle
     document.addEventListener('DOMContentLoaded', function() {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebar = document.getElementById('sidebar');
       
-      // Add CSRF token to all fetch requests
-      const originalFetch = window.fetch;
-      window.fetch = function(url, options = {}) {
-        if (typeof options.headers === 'undefined') {
-          options.headers = {};
-        }
-        
-        if (options.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase())) {
-          options.headers['X-CSRF-Token'] = csrfToken;
-        }
-        
-        return originalFetch(url, options);
-      };
-      
-      // Add CSRF token to all XHR requests
-      const originalOpen = XMLHttpRequest.prototype.open;
-      XMLHttpRequest.prototype.open = function() {
-        const result = originalOpen.apply(this, arguments);
-        
-        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(arguments[0].toUpperCase())) {
-          this.setRequestHeader('X-CSRF-Token', csrfToken);
-        }
-        
-        return result;
-      };
+      if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+          sidebar.classList.toggle('-translate-x-full');
+        });
+      }
     });
   </script>
+  
+  <!-- Chart.js (if needed) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  
+  <!-- Admin JS -->
+  <script src="/admin/js/admin.js"></script>
   
   <!-- Additional Scripts -->
   <% if (typeof scripts !== 'undefined') { %>

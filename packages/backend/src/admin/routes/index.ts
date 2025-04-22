@@ -1,42 +1,35 @@
-// File: packages/backend/src/admin/routes/index.ts
-
 import { Router } from 'express'
 import authRoutes from './auth.routes'
 import dashboardRoutes from './dashboard.routes'
-import { authenticateAdmin } from '@/api/middlewares/auth.middleware'
 import { notFoundHandler } from '@/api/middlewares/error.middleware'
+import { authenticateAdmin } from '@/api/middlewares/auth.middleware'
 
 const router = Router()
 
-// Admin root route - redirect to dashboard if authenticated, otherwise to login
+// Admin dashboard route
 router.get('/', (req, res) => {
-  // Check if admin token exists
-  const adminToken = req.cookies?.adminToken
-  if (adminToken) {
-    // Redirect to dashboard
-    return res.redirect('/admin/dashboard')
-  }
-  
-  // Not authenticated, redirect to login
+  // Redirect to login if not authenticated
   res.redirect('/admin/auth/login')
 })
 
-// Mount routes
+// Mount auth routes (no authentication required)
 router.use('/auth', authRoutes)
+
+// Protect all other admin routes with admin authentication
+router.use((req, res, next) => {
+  // Skip authentication for login routes
+  if (req.path.startsWith('/auth/')) {
+    return next()
+  }
+  
+  // Apply admin authentication for all other routes
+  authenticateAdmin(req, res, next)
+})
+
+// Mount dashboard routes
 router.use('/dashboard', dashboardRoutes)
 
-// Future routes to implement
+// TODO: Add other admin routes here
 // router.use('/users', userRoutes)
 // router.use('/professionals', professionalRoutes)
-// router.use('/gemstones', gemstoneRoutes)
-// router.use('/rough-stones', roughStoneRoutes)
-// router.use('/jewelry', jewelryRoutes)
-// router.use('/marketplace', marketplaceRoutes)
-// router.use('/certificates', certificateRoutes)
-// router.use('/reference-data', referenceDataRoutes)
-// router.use('/system', systemRoutes)
-
-// Handle 404 for admin routes
-router.use(notFoundHandler)
-
-export default router
+// etc.
